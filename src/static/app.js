@@ -24,7 +24,11 @@ function displayActivities(activities) {
     card.className = 'activity-card';
     
     const participantsList = activity.participants.length > 0
-      ? `<ul>${activity.participants.map(p => `<li>${p}</li>`).join('')}</ul>`
+      ? `<ul style="list-style-type: none;">${activity.participants.map(p => `
+          <li>
+            ${p} 
+            <button class="delete-participant" data-activity="${name}" data-participant="${p}">🗑️</button>
+          </li>`).join('')}</ul>`
       : '<p class="participants-empty">No participants yet</p>';
 
     card.innerHTML = `
@@ -39,10 +43,36 @@ function displayActivities(activities) {
     `;
     container.appendChild(card);
   });
+
+  // Add event listeners for delete buttons
+  document.querySelectorAll('.delete-participant').forEach(button => {
+    button.addEventListener('click', async (e) => {
+      const activityName = e.target.dataset.activity;
+      const participantEmail = e.target.dataset.participant;
+      await unregisterParticipant(activityName, participantEmail);
+    });
+  });
+}
+
+async function unregisterParticipant(activity, email) {
+  try {
+    const response = await fetch(`/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(email)}`, {
+      method: 'DELETE'
+    });
+
+    if (response.ok) {
+      await loadActivities(); // Reload activities to reflect changes
+    } else {
+      console.error('Error unregistering participant:', await response.json());
+    }
+  } catch (error) {
+    console.error('Error unregistering participant:', error);
+  }
 }
 
 function populateActivityDropdown(activities) {
   const select = document.getElementById('activity');
+  select.innerHTML = ''; // Clear existing options
   Object.keys(activities).forEach(name => {
     const option = document.createElement('option');
     option.value = name;
